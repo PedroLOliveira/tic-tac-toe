@@ -118,23 +118,24 @@ namespace JogoDaVelha
             // 02 pontos se for a posição do meio
             // 01 ponto se for alguma das posições das bordas
             // Menos 02 pontos, se já tiver uma peça do adversário na mesma linha, coluna ou diagonal da posição selecionada
-            // 04 pontos se a posição impedir a vitória do adversário
-            // 04 pontos se a jogada resultar em vitória
+            // 10 pontos se a posição impedir a vitória do adversário
+            // 10 pontos se a jogada resultar em vitória
             var table = GetTable();
             int score = 0, center = 4;
             int[] corners = { 0, 2, 6, 8 };
+
             if (corners.Contains(index))
                 score += 1;
             if (center == index)
                 score += 2;
             foreach (var indexes in winnerIndexes.Where(i => i.Contains(index)))
             {
-                if (CountPlayerInIndexes(table, player == human ? ai : human, indexes) == 1)
+                if (CountPlayerInIndexes(table, player == ai ? human : ai, indexes) == 1)
                     score -= 2;
                 if (WinnerIndexes(table, player, indexes))
-                    score += 4;
-                if (WinnerIndexes(table, player == human ? ai : human, indexes))
-                    score += 4;
+                    score += 10;
+                if (WinnerIndexes(table, player == ai ? human : ai, indexes))
+                    score += 10;
             }
             return score;
         }
@@ -169,16 +170,16 @@ namespace JogoDaVelha
             }
         }
 
-        private static bool Winner(List<string> table, string player)
+        private bool Winner(List<string> table, string player)
         {
-            if (table[0] == player && table[1] == player && table[2] == player || 
-                table[3] == player && table[4] == player && table[5] == player ||
-                table[6] == player && table[7] == player && table[8] == player ||
-                table[0] == player && table[3] == player && table[6] == player ||
-                table[1] == player && table[4] == player && table[7] == player ||
-                table[2] == player && table[5] == player && table[8] == player ||
-                table[0] == player && table[4] == player && table[8] == player ||
-                table[2] == player && table[4] == player && table[6] == player)
+            if (WinnerIndexes(table, player, winnerIndexes[0]) ||
+                WinnerIndexes(table, player, winnerIndexes[1]) ||
+                WinnerIndexes(table, player, winnerIndexes[2]) ||
+                WinnerIndexes(table, player, winnerIndexes[3]) ||
+                WinnerIndexes(table, player, winnerIndexes[4]) ||
+                WinnerIndexes(table, player, winnerIndexes[5]) ||
+                WinnerIndexes(table, player, winnerIndexes[6]) ||
+                WinnerIndexes(table, player, winnerIndexes[7]))
                 return true;
 
             return false;
