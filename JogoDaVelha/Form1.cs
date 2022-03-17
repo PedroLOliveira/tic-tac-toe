@@ -48,6 +48,30 @@ namespace JogoDaVelha
             return new() { button1.Text, button2.Text, button3.Text, button4.Text, button5.Text, button6.Text, button7.Text, button8.Text, button9.Text };
         }
 
+        private Button GetButtonByIndex(int index)
+        {
+            return index switch
+            {
+                0 => button1,
+                1 => button2,
+                2 => button3,
+                3 => button4,
+                4 => button5,
+                5 => button6,
+                6 => button7,
+                7 => button8,
+                8 => button9,
+                _ => throw new NotImplementedException()
+            };
+        }
+
+        private List<int> EmptyCells()
+        {
+            return GetTable().Select((value, index) => (value, index))
+                .Where(x => string.IsNullOrEmpty(x.value))
+                .Select(x => x.index).ToList();
+        }
+
         private async void Play(Button button, string player)
         {
             button.Text = player;
@@ -62,6 +86,12 @@ namespace JogoDaVelha
                 button_disabled = false;
             }
             CheckForWinner();
+        }
+
+        private void ProjectPlay(string player)
+        {
+            var betterMove = CalculateBetterMove(player);
+            Play(GetButtonByIndex(betterMove.Index), player);
         }
 
         private Move CalculateBetterMove(string player)
@@ -107,36 +137,6 @@ namespace JogoDaVelha
                     score += 4;
             }
             return score;
-        }
-
-        private void ProjectPlay(string player)
-        {
-            var betterMove = CalculateBetterMove(player);
-            Play(GetButtonByIndex(betterMove.Index), player);
-        }
-
-        private List<int> EmptyCells()
-        {
-            return GetTable().Select((value, index) => (value, index))
-                .Where(x => string.IsNullOrEmpty(x.value))
-                .Select(x => x.index).ToList();
-        }
-
-        private Button GetButtonByIndex(int index)
-        {
-            return index switch
-            {
-                0 => button1,
-                1 => button2,
-                2 => button3,
-                3 => button4,
-                4 => button5,
-                5 => button6,
-                6 => button7,
-                7 => button8,
-                8 => button9,
-                _ => throw new NotImplementedException()
-            };
         }
 
         private void CheckForWinner()
