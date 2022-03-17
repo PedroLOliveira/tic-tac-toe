@@ -2,6 +2,7 @@ namespace JogoDaVelha
 {
     public partial class Form1 : Form
     {
+        #region Variables
         bool aiTurn = false, button_disabled = false;
         int humanWins = 0, aiWins = 0, draws = 0;
         readonly string human = "X", ai = "O";
@@ -16,18 +17,19 @@ namespace JogoDaVelha
             new List<int> { 0, 4, 8 },
             new List<int> { 2, 4, 6 }
         };
-
         internal class Move
         {
             public int Points { get; set; }
             public int Index { get; set; }
         }
+        #endregion
 
         public Form1()
         {
             InitializeComponent();
         }
 
+        #region Clear the game screen
         private void Clear()
         {
             button1.Text = "";
@@ -42,7 +44,9 @@ namespace JogoDaVelha
             button_disabled = false;
             aiTurn = false;
         }
+        #endregion
 
+        #region Get Table, Button and EmptyCells
         private List<string> GetTable()
         {
             return new() { button1.Text, button2.Text, button3.Text, button4.Text, button5.Text, button6.Text, button7.Text, button8.Text, button9.Text };
@@ -65,14 +69,16 @@ namespace JogoDaVelha
             };
         }
 
-        private List<int> EmptyCells()
+        private List<int> GetEmptyCells()
         {
             return GetTable().Select((value, index) => (value, index))
                 .Where(x => string.IsNullOrEmpty(x.value))
                 .Select(x => x.index).ToList();
         }
+        #endregion
 
-        private async void Play(Button button, string player)
+        #region Play
+        private void Play(Button button, string player)
         {
             button.Text = player;
             if (aiTurn)
@@ -87,7 +93,9 @@ namespace JogoDaVelha
             }
             CheckForWinner();
         }
+        #endregion
 
+        #region Project and calculate where to play
         private void ProjectPlay(string player)
         {
             var betterMove = CalculateBetterMove(player);
@@ -97,7 +105,7 @@ namespace JogoDaVelha
         private Move CalculateBetterMove(string player)
         {
             var table = GetTable();
-            var emptyCells = EmptyCells();
+            var emptyCells = GetEmptyCells();
 
             var move = new Move() { Index = -1, Points = -1000 };
             for (var i = 0; i < emptyCells.Count; i++)
@@ -139,7 +147,9 @@ namespace JogoDaVelha
             }
             return score;
         }
+        #endregion
 
+        #region Winning checks
         private void CheckForWinner()
         {
             var table = GetTable();
@@ -157,7 +167,7 @@ namespace JogoDaVelha
                 MessageBox.Show("Maquina venceu!");
                 button_disabled = true;
             }
-            else if (!EmptyCells().Any())
+            else if (!GetEmptyCells().Any())
             {
                 draws++;
                 label6.Text = Convert.ToString(draws);
@@ -203,7 +213,9 @@ namespace JogoDaVelha
                 count++;
             return count;
         }
+        #endregion
 
+        #region Button interactions
         private void button1_Click(object sender, EventArgs e)
         {
             if (!aiTurn && !button_disabled && button1.Text == "")
@@ -262,5 +274,6 @@ namespace JogoDaVelha
         {
             Clear();
         }
+        #endregion
     }
 }
