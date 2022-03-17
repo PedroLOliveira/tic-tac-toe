@@ -28,7 +28,7 @@ namespace JogoDaVelha
             InitializeComponent();
         }
 
-        private void LimpaJogo()
+        private void Clear()
         {
             button1.Text = "";
             button2.Text = "";
@@ -259,7 +259,7 @@ namespace JogoDaVelha
 
         private void button10_Click(object sender, EventArgs e)
         {
-            LimpaJogo();
+            Clear();
         }
     }
 }
