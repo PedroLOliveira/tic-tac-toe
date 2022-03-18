@@ -2,36 +2,48 @@ namespace JogoDaVelha
 {
     public partial class Form1 : Form
     {
-        #region Variables
-        bool aiTurn = false, button_disabled = false;
+        #region variables
+        public enum Cell { Empty = 0, X = 1, O = 2 };
+
+        public Cell[] Table = new Cell[9];
+
+        bool button_disabled = false;
         int humanWins = 0, aiWins = 0, draws = 0;
-        readonly string human = "X", ai = "O";
-        List<List<int>> winnerIndexes = new()
+
+        static List<List<int>> winnerIndexes = new()
         {
-            new List<int> { 0, 1, 2 },
-            new List<int> { 3, 4, 5 },
-            new List<int> { 6, 7, 8 },
-            new List<int> { 0, 3, 6 },
-            new List<int> { 1, 4, 7 },
-            new List<int> { 2, 5, 8 },
-            new List<int> { 0, 4, 8 },
-            new List<int> { 2, 4, 6 }
+            new List<int>() { 0, 1, 2 },
+            new List<int>() { 3, 4, 5 },
+            new List<int>() { 6, 7, 8 },
+            new List<int>() { 0, 3, 6 }, 
+            new List<int>() { 1, 4, 7 }, 
+            new List<int>() { 2, 5, 8 },
+            new List<int>() { 0, 4, 8 }, 
+            new List<int>() { 2, 4, 6 }
         };
-        internal class Move
-        {
-            public int Points { get; set; }
-            public int Index { get; set; }
-        }
+
+        public Cell CurrentTurn = Cell.X;
+
+        int ChoosenMove = -1;
+
+        public Cell Human = Cell.X;
+        public Cell AI = Cell.O;
         #endregion
 
         public Form1()
         {
             InitializeComponent();
+            CurrentTurn = Cell.X;
+            Human = Cell.X;
+            AI = Cell.O;
+            ChoosenMove = -1;
         }
 
-        #region Clear the game screen
-        private void Clear()
+        #region update game
+        public void Clear()
         {
+            CurrentTurn = Cell.X;
+            Table = new Cell[9];
             button1.Text = "";
             button2.Text = "";
             button3.Text = "";
@@ -42,14 +54,101 @@ namespace JogoDaVelha
             button8.Text = "";
             button9.Text = "";
             button_disabled = false;
-            aiTurn = false;
+            ChoosenMove = -1;
+        }
+
+        public void Play()
+        {
+            if (CurrentTurn == Human)
+            {
+                Button button = GetButtonByIndex(ChoosenMove);
+                button.Text = "X";
+                Table = MoveInTable(Table, CurrentTurn, ChoosenMove);
+                CurrentTurn = GetRival(CurrentTurn);
+                CheckForWinner();
+            }
+            else if (CurrentTurn == AI)
+            {
+                Minimax(DuplicateTable(Table), CurrentTurn);
+                Button button = GetButtonByIndex(ChoosenMove);
+                button.Text = "O";
+                Table = MoveInTable(Table, CurrentTurn, ChoosenMove);
+                CurrentTurn = GetRival(CurrentTurn);
+                CheckForWinner();
+            }
+        }
+
+        static Cell[] MoveInTable(Cell[] Table, Cell Move, int Position)
+        {
+            Cell[] newTable = DuplicateTable(Table);
+            newTable[Position] = Move;
+            return newTable;
         }
         #endregion
 
-        #region Get Table, Button and EmptyCells
-        private List<string> GetTable()
+        #region minimax
+        int Minimax(Cell[] InputTable, Cell Player)
         {
-            return new() { button1.Text, button2.Text, button3.Text, button4.Text, button5.Text, button6.Text, button7.Text, button8.Text, button9.Text };
+            Cell[] Table = DuplicateTable(InputTable);
+
+            if (GetScore(Table, AI) != 0)
+                return GetScore(Table, AI);
+            else if (CheckDrawGame(Table)) 
+                return 0;
+
+            List<int> scores = new();
+            List<int> moves = new();
+
+            for (int i = 0; i < 9; i++)
+            {
+                if (Table[i] == Cell.Empty)
+                {
+                    scores.Add(Minimax(MoveInTable(Table, Player, i), GetRival(Player)));
+                    moves.Add(i);
+                }
+            }
+
+            if (Player == AI)
+            {
+                int MaxScoreIndex = scores.IndexOf(scores.Max());
+                ChoosenMove = moves[MaxScoreIndex];
+                return scores.Max();
+            }
+            else
+            {
+                int MinScoreIndex = scores.IndexOf(scores.Min());
+                ChoosenMove = moves[MinScoreIndex];
+                return scores.Min();
+            }
+        }
+        #endregion
+
+        #region side methods
+        static Cell GetRival(Cell Cell)
+        {
+            if (Cell == Cell.X)
+                return Cell.O;
+            else
+                return Cell.X;
+        }
+
+        static int GetScore(Cell[] Table, Cell Player)
+        {
+            if (Winner(Table, Player)) 
+                return 1;
+            else if (Winner(Table, GetRival(Player))) 
+                return -1;
+            else 
+                return 0;
+        }
+
+        static Cell[] DuplicateTable(Cell[] Table)
+        {
+            Cell[] Clone = new Cell[9];
+            for (int i = 0; i < 9; i++) 
+                Clone[i] = Table[i];
+
+            return Clone;
         }
 
         private Button GetButtonByIndex(int index)
@@ -68,119 +167,48 @@ namespace JogoDaVelha
                 _ => throw new NotImplementedException()
             };
         }
-
-        private List<int> GetEmptyCells()
-        {
-            return GetTable().Select((value, index) => (value, index))
-                .Where(x => string.IsNullOrEmpty(x.value))
-                .Select(x => x.index).ToList();
-        }
         #endregion
 
-        #region Play
-        private void Play(Button button, string player)
-        {
-            button.Text = player;
-            if (aiTurn)
-            {
-                aiTurn = false;
-                button_disabled = false;
-            }
-            else
-            {
-                aiTurn = true;
-                button_disabled = false;
-            }
-            CheckForWinner();
-        }
-        #endregion
-
-        #region Project and calculate where to play
-        private void ProjectPlay(string player)
-        {
-            var betterMove = CalculateBetterMove(player);
-            Play(GetButtonByIndex(betterMove.Index), player);
-        }
-
-        private Move CalculateBetterMove(string player)
-        {
-            var table = GetTable();
-            var emptyCells = GetEmptyCells();
-
-            var move = new Move() { Index = -1, Points = -1000 };
-            for (var i = 0; i < emptyCells.Count; i++)
-            {
-                int score = MovementScore(emptyCells[i], player);
-
-                if (score > move.Points)
-                {
-                    move.Points = score;
-                    move.Index = emptyCells[i];
-                }
-            }
-            return move;
-        }
-
-        private int MovementScore(int index, string player)
-        {
-            // 02 pontos se for a posição do meio
-            // 01 ponto se for alguma das posições das bordas
-            // Menos 02 pontos, se já tiver uma peça do adversário na mesma linha, coluna ou diagonal da posição selecionada
-            // 10 pontos se a posição impedir a vitória do adversário
-            // 10 pontos se a jogada resultar em vitória
-            var table = GetTable();
-            int score = 0, center = 4;
-            int[] corners = { 0, 2, 6, 8 };
-
-            if (corners.Contains(index))
-                score += 1;
-            if (center == index)
-                score += 2;
-            foreach (var indexes in winnerIndexes.Where(i => i.Contains(index)))
-            {
-                if (CountPlayerInIndexes(table, player == ai ? human : ai, indexes) == 1)
-                    score -= 2;
-                if (WinnerIndexes(table, player, indexes))
-                    score += 10;
-                if (WinnerIndexes(table, player == ai ? human : ai, indexes))
-                    score += 10;
-            }
-            return score;
-        }
-        #endregion
-
-        #region Winning checks
+        #region winner checks
         private void CheckForWinner()
         {
-            var table = GetTable();
-            if (Winner(table, human))
+            if (Winner(Table, Human))
             {
                 humanWins++;
                 label4.Text = Convert.ToString(humanWins);
                 MessageBox.Show("Humano venceu!");
                 button_disabled = true;
             }
-            else if (Winner(table, ai))
+            else if (Winner(Table, AI))
             {
                 aiWins++;
                 label5.Text = Convert.ToString(aiWins);
                 MessageBox.Show("Maquina venceu!");
                 button_disabled = true;
             }
-            else if (!GetEmptyCells().Any())
+            else if (CheckDrawGame(Table))
             {
                 draws++;
                 label6.Text = Convert.ToString(draws);
                 MessageBox.Show("Empate");
                 button_disabled = true;
             }
-            if (aiTurn && !button_disabled)
+            if (CurrentTurn == AI && !button_disabled)
             {
-                ProjectPlay(ai);
+                Play();
             }
         }
 
-        private bool Winner(List<string> table, string player)
+        static bool CheckDrawGame(Cell[] Table)
+        {
+            foreach (Cell p in Table)
+                if (p == Cell.Empty)
+                    return false;
+
+            return true;
+        }
+
+        private static bool Winner(Cell[] table, Cell player)
         {
             if (WinnerIndexes(table, player, winnerIndexes[0]) ||
                 WinnerIndexes(table, player, winnerIndexes[1]) ||
@@ -195,79 +223,94 @@ namespace JogoDaVelha
             return false;
         }
 
-        private static bool WinnerIndexes(List<string> table, string player, List<int> indexes)
+        private static bool WinnerIndexes(Cell[] table, Cell player, List<int> indexes)
         {
             if (table[indexes[0]] == player && table[indexes[1]] == player && table[indexes[2]] == player)
                 return true;
             return false;
-        }
-
-        private static int CountPlayerInIndexes(List<string> table, string player, List<int> indexes)
-        {
-            int count = 0;
-            if (table[indexes[0]] == player)
-                count++;
-            if (table[indexes[1]] == player)
-                count++;
-            if (table[indexes[2]] == player)
-                count++;
-            return count;
         }
         #endregion
 
         #region Button interactions
         private void button1_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button1.Text == "")
-                Play(button1, human);
+            if (CurrentTurn == Human && !button_disabled && button1.Text == "")
+            {
+                ChoosenMove = 0;
+                Play();
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button2.Text == "")
-                Play(button2, human);
+            if (CurrentTurn == Human && !button_disabled && button2.Text == "")
+            {
+                ChoosenMove = 1;
+                Play();
+            }
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button3.Text == "")
-                Play(button3, human);
+            if (CurrentTurn == Human && !button_disabled && button3.Text == "")
+            {
+                ChoosenMove = 2;
+                Play();
+            }
         }
 
         private void button4_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button4.Text == "")
-                Play(button4, human);
+            if (CurrentTurn == Human && !button_disabled && button4.Text == "")
+            {
+                ChoosenMove = 3;
+                Play();
+            }
         }
 
         private void button5_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button5.Text == "")
-                Play(button5, human);
+            if (CurrentTurn == Human && !button_disabled && button5.Text == "")
+            {
+                ChoosenMove = 4;
+                Play();
+            }
         }
 
         private void button6_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button6.Text == "")
-                Play(button6, human);
+            if (CurrentTurn == Human && !button_disabled && button6.Text == "")
+            {
+                ChoosenMove = 5;
+                Play();
+            }
         }
 
         private void button7_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button7.Text == "")
-                Play(button7, human);
+            if (CurrentTurn == Human && !button_disabled && button7.Text == "")
+            {
+                ChoosenMove = 6;
+                Play();
+            }
         }
 
         private void button8_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button8.Text == "")
-                Play(button8, human);
+            if (CurrentTurn == Human && !button_disabled && button8.Text == "")
+            {
+                ChoosenMove = 7;
+                Play();
+            }
         }
 
         private void button9_Click(object sender, EventArgs e)
         {
-            if (!aiTurn && !button_disabled && button9.Text == "")
-                Play(button9, human);
+            if (CurrentTurn == Human && !button_disabled && button9.Text == "")
+            {
+                ChoosenMove = 8;
+                Play();
+            }
         }
 
         private void button10_Click(object sender, EventArgs e)
